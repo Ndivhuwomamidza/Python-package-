@@ -1,32 +1,4 @@
-mini 3.8 Flash
-Ran for 12s
-lightbulb
-Thought for 12 seconds
-Look at lines 60–68 in your logs:
-code
-Text
-Run echo Hello, world!
-Hello, world!
 
-Run echo Add other actions to build, test, and deploy your project.
-Add other actions to build,
-test, and deploy your project.
-The Problem
-You ran GitHub's default placeholder workflow (the "Hello, world!" template), not the PyPI upload workflow!
-Because that file only ran echo Hello, world!, it never:
-Built your Python wheel or source distribution (python -m build).
-Uploaded anything to PyPI (pypa/gh-action-pypi-publish).
-That is why PyPI is still waiting on "Pending publisher"—no package was ever sent to it!
-How to Fix It (Step-by-Step)
-Step 1: Open Your Workflow File on GitHub
-In your repository (Ndivhuwomamidza/Python-package-), go to:
-.github/workflows/
-Click on the .yml file that is in that folder (it might be named blank.yml, main.yml, or ci.yml).
-Click the Pencil ✏️ (Edit) icon.
-Step 2: Replace Everything with This Exact Code
-Delete everything in that file and paste this:
-code
-Yaml
 name: Upload Python Package to PyPI
 
 on:
