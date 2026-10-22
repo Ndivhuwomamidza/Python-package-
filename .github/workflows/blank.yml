@@ -1,36 +1,80 @@
-# This is a basic workflow to help you get started with Actions
+mini 3.8 Flash
+Ran for 12s
+lightbulb
+Thought for 12 seconds
+Look at lines 60–68 in your logs:
+code
+Text
+Run echo Hello, world!
+Hello, world!
 
-name: CI
+Run echo Add other actions to build, test, and deploy your project.
+Add other actions to build,
+test, and deploy your project.
+The Problem
+You ran GitHub's default placeholder workflow (the "Hello, world!" template), not the PyPI upload workflow!
+Because that file only ran echo Hello, world!, it never:
+Built your Python wheel or source distribution (python -m build).
+Uploaded anything to PyPI (pypa/gh-action-pypi-publish).
+That is why PyPI is still waiting on "Pending publisher"—no package was ever sent to it!
+How to Fix It (Step-by-Step)
+Step 1: Open Your Workflow File on GitHub
+In your repository (Ndivhuwomamidza/Python-package-), go to:
+.github/workflows/
+Click on the .yml file that is in that folder (it might be named blank.yml, main.yml, or ci.yml).
+Click the Pencil ✏️ (Edit) icon.
+Step 2: Replace Everything with This Exact Code
+Delete everything in that file and paste this:
+code
+Yaml
+name: Upload Python Package to PyPI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  release:
+    types: [published]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+permissions:
+  contents: read
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  release-build:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Build release distributions
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      id-token: write
+    environment:
+      name: pypi
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
