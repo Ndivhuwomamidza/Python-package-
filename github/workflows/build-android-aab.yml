@@ -1,0 +1,75 @@
+name: Build Android App Bundle (.aab)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-aab:
+    name: Build Signed Google Play AAB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Google Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Build Android App Bundle (.aab)
+        run: |
+          mkdir -p android-build
+          cd android-build
+
+          # 1. Generate signing keystore
+          keytool -genkeypair -v -keystore android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000 -storepass password123 -keypass password123 -dname "CN=PyPI Actions, OU=Engineering, O=Studio, L=London, C=GB"
+
+          # 2. Create Bubblewrap configuration
+          cat << 'EOF' > twa-manifest.json
+          {
+            "packageId": "com.pypiactions.studio",
+            "host": "ais-pre-n47gfimtfdhfllapp7gfwm-754238660684.europe-west2.run.app",
+            "name": "pypi-actions-studio.ai",
+            "launcherName": "pypi-actions",
+            "display": "standalone",
+            "themeColor": "#618c4c",
+            "navigationColor": "#020617",
+            "backgroundColor": "#ab4375",
+            "enableNotifications": true,
+            "startUrl": "/",
+            "iconUrl": "https://raw.githubusercontent.com/Ndivhuwomamidza/Python-package-/main/public/pwa-512x512.png",
+            "maskableIconUrl": "https://raw.githubusercontent.com/Ndivhuwomamidza/Python-package-/main/public/pwa-maskable-512x512.png",
+            "appVersionName": "1.0.0",
+            "appVersionCode": 1,
+            "signing": {
+              "keyStore": "./android.keystore",
+              "keyAlias": "android"
+            },
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://ais-pre-n47gfimtfdhfllapp7gfwm-754238660684.europe-west2.run.app/manifest.webmanifest"
+          }
+          EOF
+
+          # 3. Compile the signed AAB bundle
+          bubblewrap build --skipPwaValidation
+
+      - name: Upload .aab Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-play-app-bundle
+          path: android-build/*.aab
